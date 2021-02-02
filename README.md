@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/bryansum/ObservableUserDefaults/workflows/CI/badge.svg)](https://actions-badge.atrox.dev/bryansum/ObservableUserDefaults/goto)
 
-Property wrapper for UserDefaults that can be mocked for testing or observing using a Combine Publisher.
+Property wrapper for UserDefaults that can be mocked for testing or observed using a Combine Publisher.
 
 ## Usage
 ```swift
