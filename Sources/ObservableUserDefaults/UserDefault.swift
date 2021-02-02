@@ -9,6 +9,8 @@ public struct UserDefault<Value> {
   public var get: () -> Value?
   public var set: (Value?) -> Void
 
+  var convert: (Any) -> (Value?)
+
   public var wrappedValue: Value? {
     get {
       get()
@@ -50,8 +52,8 @@ extension UserDefault {
     init(userDefault: UserDefault, subscriber: S) {
       self.userDefault = userDefault
       self.subscriber = subscriber
-      disposables.append(Foundation.UserDefaults.standard.observe(keyPath: userDefault.name, options: [.initial, .new]) { [unowned self] (value: Value?) in
-        self.value = value
+      disposables.append(Foundation.UserDefaults.standard.observe(keyPath: userDefault.name, options: [.initial, .new]) { [unowned self] (value: Any?) in
+        self.value = value.flatMap { userDefault.convert($0) }
         sendIfNeeded()
       })
     }
@@ -80,14 +82,25 @@ public extension UserDefault where Value == String {
     self.name = name
     get = { Foundation.UserDefaults.standard.string(forKey: name) }
     set = { Foundation.UserDefaults.standard.setValue($0, forKey: name) }
+    convert = { $0 as? Value }
   }
 }
 
-public extension UserDefault where Value == Bool {
+public extension UserDefault where Value: LosslessStringConvertible {
   init(name: String) {
     self.name = name
-    get = { Foundation.UserDefaults.standard.bool(forKey: name) }
-    set = { Foundation.UserDefaults.standard.setValue($0, forKey: name) }
+    get = { Foundation.UserDefaults.standard.string(forKey: name).flatMap(Value.init) }
+    set = { Foundation.UserDefaults.standard.setValue($0?.description, forKey: name) }
+    convert = { value in
+      switch value {
+      case let value as String:
+        return Value(value)
+      case let value as Value:
+        return value
+      default:
+        return nil
+      }
+    }
   }
 }
 
@@ -96,6 +109,16 @@ public extension UserDefault where Value: RawRepresentable, Value.RawValue == St
     self.name = name
     get = { Foundation.UserDefaults.standard.string(forKey: name).flatMap(Value.init(rawValue:)) }
     set = { Foundation.UserDefaults.standard.setValue($0?.rawValue, forKey: name) }
+    convert = { value in
+      switch value {
+      case let value as String:
+        return Value(rawValue: value)
+      case let value as Value:
+        return value
+      default:
+        return nil
+      }
+    }
   }
 }
 
@@ -104,6 +127,19 @@ public extension UserDefault where Value: RawRepresentable, Value.RawValue == In
     self.name = name
     get = { Value(rawValue: Foundation.UserDefaults.standard.integer(forKey: name)) }
     set = { Foundation.UserDefaults.standard.setValue($0?.rawValue, forKey: name) }
+    convert = { value in
+      switch value {
+      case let value as String:
+        let intValue = Int(value)
+        return intValue.flatMap { Value(rawValue: $0) }
+      case let value as Value.RawValue:
+        return Value(rawValue: value)
+      case let value as Value:
+        return value
+      default:
+        return nil
+      }
+    }
   }
 }
 
@@ -112,6 +148,14 @@ public extension UserDefault {
     self.name = name
     get = { Foundation.UserDefaults.standard.object(forKey: name) as? Value }
     set = { Foundation.UserDefaults.standard.setValue($0, forKey: name) }
+    convert = { value in
+      switch value {
+      case let value as Value:
+        return value
+      default:
+        return nil
+      }
+    }
   }
 }
 
@@ -120,6 +164,7 @@ public extension UserDefault {
     Self(name: name,
          get: { value },
          set: { _ in },
+         convert: { _ in nil },
          publisher: { _ in
            Optional.Publisher(value).eraseToAnyPublisher()
          })

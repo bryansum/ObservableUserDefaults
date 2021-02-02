@@ -3,22 +3,22 @@
 import Foundation
 
 extension NSObject {
-  func observe<Value>(keyPath: String,
-                      type _: Value.Type? = nil,
-                      options: NSKeyValueObservingOptions = [.new],
-                      completion: @escaping (Value?) -> Void) -> Any {
-    let observer = KeyValueObserver<Value>(object: self, keyPath: keyPath, options: options) { value in
+  func observe(keyPath: String,
+               options: NSKeyValueObservingOptions = [.new],
+               completion: @escaping (Any?) -> Void) -> Any
+  {
+    let observer = KeyValueObserver(object: self, keyPath: keyPath, options: options) { value in
       completion(value)
     }
     return Disposable { observer.invalidate() }
   }
 }
 
-private final class KeyValueObserver<Value>: NSObject {
+private final class KeyValueObserver: NSObject {
   public init(object: NSObject,
               keyPath: String,
               options: NSKeyValueObservingOptions,
-              callback: @escaping (Value?) -> Void)
+              callback: @escaping (Any?) -> Void)
   {
     self.object = object
     self.keyPath = keyPath
@@ -49,10 +49,8 @@ private final class KeyValueObserver<Value>: NSObject {
       switch change[key] {
       case is NSNull:
         callback(nil)
-      case let value as Value?:
+      case let value:
         callback(value)
-      default:
-        fatalError("Unexpected value")
       }
     } else {
       super.observeValue(forKeyPath: keyPath, of: object, change: change, context: context)
@@ -63,6 +61,6 @@ private final class KeyValueObserver<Value>: NSObject {
   private var context = 0 // Values don't really matter. Only address is important.
   private let object: NSObject
   private let keyPath: String
-  private let callback: (Value?) -> Void
+  private let callback: (Any?) -> Void
   private let options: NSKeyValueObservingOptions
 }
