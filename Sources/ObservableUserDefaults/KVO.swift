@@ -3,7 +3,10 @@
 import Foundation
 
 extension NSObject {
-  func observe<Value>(keyPath: String, type _: Value.Type? = nil, options: NSKeyValueObservingOptions = [.new], completion: @escaping (Value?) -> Void) -> Any {
+  func observe<Value>(keyPath: String,
+                      type _: Value.Type? = nil,
+                      options: NSKeyValueObservingOptions = [.new],
+                      completion: @escaping (Value?) -> Void) -> Any {
     let observer = KeyValueObserver<Value>(object: self, keyPath: keyPath, options: options) { value in
       completion(value)
     }
