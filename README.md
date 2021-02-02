@@ -28,7 +28,7 @@ struct Environment {
   var userDefaults: UserDefaults
 }
 
-var Current = Environment(userDefaults: .live)
+var Current = Environment(userDefaults: .loggedOut)
 
 ```
 
