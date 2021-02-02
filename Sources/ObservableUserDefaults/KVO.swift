@@ -2,32 +2,6 @@
 
 import Foundation
 
-private final class Disposable {
-  let dispose: () -> Void
-
-  init(_ dispose: @escaping () -> Void) {
-    self.dispose = dispose
-  }
-
-  deinit {
-    dispose()
-  }
-}
-
-extension _KeyValueCodingAndObserving where Self: NSObjectProtocol {
-  /// Observe a given key path property.
-  func observe<Value>(_ keyPath: KeyPath<Self, Value>, options: NSKeyValueObservingOptions = [.new], observer: @escaping (Value) -> Void) -> Any {
-    let token = observe(keyPath, options: options) { _, change in
-      let newValue = change.newValue!
-      observer(newValue)
-    }
-    return Disposable {
-      token.invalidate()
-      _ = self
-    }
-  }
-}
-
 extension NSObject {
   func observe<Value>(keyPath: String, type _: Value.Type? = nil, options: NSKeyValueObservingOptions = [.new], completion: @escaping (Value?) -> Void) -> Any {
     let observer = KeyValueObserver<Value>(object: self, keyPath: keyPath, options: options) { value in
